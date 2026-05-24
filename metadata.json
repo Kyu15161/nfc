@@ -1,0 +1,6 @@
+{
+  "name": "NFC Tag Reader & Analyzer",
+  "description": "An interactive, high-fidelity Near Field Communication (NFC) tag inspection tool and simulator with beautiful Material 3 diagnostics and memory visualizations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
