@@ -19,8 +19,10 @@ import kotlinx.coroutines.launch
 
 class NfcViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository: NfcCardRepository
-    val allCards: StateFlow<List<NfcCard>>
+    private var repository: NfcCardRepository? = null
+    
+    private val _allCards = MutableStateFlow<List<NfcCard>>(emptyList())
+    val allCards: StateFlow<List<NfcCard>> = _allCards.asStateFlow()
 
     private val _activeCardScanned = MutableStateFlow<NfcCard?>(null)
     val activeCardScanned: StateFlow<NfcCard?> = _activeCardScanned.asStateFlow()
@@ -47,13 +49,13 @@ class NfcViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
-        val database = NfcDatabase.getDatabase(application)
-        repository = NfcCardRepository(database.nfcCardDao())
-        allCards = repository.allCards.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val database = NfcDatabase.getDatabase(application)
+            repository = NfcCardRepository(database.nfcCardDao())
+            repository?.allCards?.collect {
+                _allCards.value = it
+            }
+        }
     }
 
     fun setScanningActive(active: Boolean) {
@@ -67,7 +69,7 @@ class NfcViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val parsedCard = NfcParser.parseTag(tag)
-                repository.insertCard(parsedCard)
+                repository?.insertCard(parsedCard)
                 _activeCardScanned.value = parsedCard
                 _showToastMessage.value = "Card Scanned: ${parsedCard.cardType}"
             } catch (e: Exception) {
@@ -83,7 +85,7 @@ class NfcViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val mockCard = NfcParser.getSimulatedCard(cardIndex)
-                val idInDb = repository.insertCard(mockCard)
+                val idInDb = repository?.insertCard(mockCard) ?: 0L
                 // Set the active card with correct database id if we want to refer to it
                 val finalCard = mockCard.copy(id = idInDb)
                 _activeCardScanned.value = finalCard
@@ -100,7 +102,7 @@ class NfcViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteCard(id: Long) {
         viewModelScope.launch {
-            repository.deleteCardById(id)
+            repository?.deleteCardById(id)
             if (_activeCardScanned.value?.id == id) {
                 _activeCardScanned.value = null
             }
@@ -110,7 +112,7 @@ class NfcViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearAllScans() {
         viewModelScope.launch {
-            repository.clearHistory()
+            repository?.clearHistory()
             _activeCardScanned.value = null
             _showToastMessage.value = "Scan history cleared"
         }
@@ -127,7 +129,7 @@ class NfcViewModel(application: Application) : AndroidViewModel(application) {
     fun saveToWallet(card: NfcCard, label: String) {
         viewModelScope.launch {
             val updatedCard = card.copy(isSavedToWallet = true, walletLabel = label)
-            repository.updateCard(updatedCard)
+            repository?.updateCard(updatedCard)
             if (_activeCardScanned.value?.id == card.id) {
                 _activeCardScanned.value = updatedCard
             }
@@ -138,7 +140,7 @@ class NfcViewModel(application: Application) : AndroidViewModel(application) {
     fun updateCardInfo(card: NfcCard, newLabel: String, newDetails: String) {
         viewModelScope.launch {
             val updatedCard = card.copy(walletLabel = newLabel, payloadText = newDetails)
-            repository.updateCard(updatedCard)
+            repository?.updateCard(updatedCard)
             if (_activeCardScanned.value?.id == card.id) {
                 _activeCardScanned.value = updatedCard
             }
@@ -166,7 +168,7 @@ class NfcViewModel(application: Application) : AndroidViewModel(application) {
                 walletLabel = label,
                 isSavedToWallet = true
             )
-            val insertedId = repository.insertCard(manualCard)
+            repository?.insertCard(manualCard)
             _showToastMessage.value = "Card Added to Wallet"
         }
     }

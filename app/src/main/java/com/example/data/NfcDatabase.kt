@@ -74,13 +74,13 @@ abstract class NfcDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): NfcDatabase {
             return INSTANCE ?: synchronized(this) {
-                // Initialize SQLCipher library
-                System.loadLibrary("sqlcipher")
+                // Initialize SQLCipher library correctly
+                net.sqlcipher.database.SQLiteDatabase.loadLibs(context.applicationContext)
                 val factory = SupportFactory(getDatabasePassphrase(context))
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     NfcDatabase::class.java,
-                    "nfc_database"
+                    "nfc_database_secure"
                 )
                 .openHelperFactory(factory)
                 .fallbackToDestructiveMigration()
