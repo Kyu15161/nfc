@@ -43,10 +43,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val isDark by viewModel.isDarkMode.collectAsState()
             MyApplicationTheme(darkTheme = isDark) {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    // Render interactive view with active bindings
-                    NfcAppScreen(viewModel)
-                }
+                // Render interactive view with active bindings
+                NfcAppScreen(viewModel)
             }
         }
     }
@@ -65,9 +63,7 @@ class MainActivity : ComponentActivity() {
                                 NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS
                     
                     adapter.enableReaderMode(this, { tag ->
-                        runOnUiThread {
-                            viewModel.onPhysicalCardDetected(tag)
-                        }
+                        viewModel.onPhysicalCardDetected(tag)
                     }, flags, null)
                 } else {
                     viewModel.setScanningActive(false)

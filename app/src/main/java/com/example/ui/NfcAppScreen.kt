@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -192,6 +193,7 @@ fun NfcAppScreen(viewModel: NfcViewModel) {
                     ScannerAndDetailsLayout(
                         activeCard = activeCard,
                         isScanning = isScanning,
+                        viewModel = viewModel,
                         onClearActiveCard = { viewModel.clearActiveCard() },
                         onSaveToWallet = { card, label -> viewModel.saveToWallet(card, label) },
                         onUpdateCardInfo = { card, label, details -> viewModel.updateCardInfo(card, label, details) },
@@ -279,6 +281,7 @@ fun NfcHeaderBanner(viewModel: NfcViewModel) {
 fun ScannerAndDetailsLayout(
     activeCard: NfcCard?,
     isScanning: Boolean,
+    viewModel: NfcViewModel,
     onClearActiveCard: () -> Unit,
     onSaveToWallet: (NfcCard, String) -> Unit,
     onUpdateCardInfo: (NfcCard, String, String) -> Unit,
@@ -296,6 +299,14 @@ fun ScannerAndDetailsLayout(
         if (activeCard == null) {
             // Displays spinning visual scan radar to capture card tap
             NfcRadarScannerArea(isScanning)
+            
+            Spacer(modifier = Modifier.height(30.dp))
+            
+            CardSimulatorSwiper(
+                onSimulate = { cardIndex -> 
+                    viewModel.onSimulateScan(cardIndex) 
+                }
+            )
         } else {
             // Displays beautiful detailed diagnostic breakdown
             ActiveCardDetailArea(card = activeCard, onDismiss = onClearActiveCard, onSaveToWallet = onSaveToWallet, onUpdateCardInfo = onUpdateCardInfo, onTapToPay = onTapToPay)
@@ -1188,7 +1199,7 @@ fun HistoryLogsLayout(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f, fill = false)
+                            .heightIn(max = 450.dp)
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -1429,8 +1440,9 @@ fun HistoryCardRow(
     onDelete: () -> Unit,
     isWalletView: Boolean = false
 ) {
-    val sdf = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
-    val timeLabel = remember(card.timestamp) { sdf.format(Date(card.timestamp)) }
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val sdf = remember(configuration) { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+    val timeLabel = remember(card.timestamp, configuration) { sdf.format(Date(card.timestamp)) }
 
     val accentBorder = when (card.payloadType) {
         "PAYMENT" -> Color(0xFF0F3EE0)
